@@ -7,6 +7,20 @@ URLS_FILE = "urls.json"
 
 @app.route('/')
 def home():
+    return render_template('dashboard.html')
+
+@app.route('/ping')
+def ping():
+    return "pong", 200
+
+if __name__ == '__main__':
+    import os
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=True)
+
+
+@app.route('/')
+def home():
     return "Uptime runner running!"
 
 @app.route('/dashboard')
