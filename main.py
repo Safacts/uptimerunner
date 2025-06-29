@@ -1,22 +1,26 @@
-from flask import Flask, request, jsonify, redirect
-import json, os, requests
+from flask import Flask, jsonify, request, redirect, send_file
+import json, os
+import requests
 
 app = Flask(__name__)
+
 URLS_FILE = "urls.json"
 
-# Redirect root to /dashboard
+# Redirect / → /dashboard
 @app.route('/')
-def home():
+def root():
     return redirect('/dashboard')
 
-# Serve dashboard.html from same folder
+@app.route('/ping')
+def ping():
+    return "pong", 200
+
 @app.route('/dashboard')
 def dashboard():
-    return open('dashboard.html').read()
+    return send_file("dashboard.html")
 
-# API for managing URLs and checking status
-@app.route('/api/urls', methods=['GET', 'POST', 'DELETE'])
-def api_urls():
+@app.route('/api/urls', methods=['GET', 'POST'])
+def handle_urls():
     if not os.path.exists(URLS_FILE):
         with open(URLS_FILE, 'w') as f:
             json.dump([], f)
@@ -24,16 +28,20 @@ def api_urls():
     if request.method == 'GET':
         with open(URLS_FILE) as f:
             urls = json.load(f)
-
-        result = []
+        statuses = []
         for url in urls:
             try:
-                response = requests.head(url, timeout=5)
-                status = '✅ Online' if response.status_code < 400 else f'❌ Error {response.status_code}'
-            except Exception:
-                status = '❌ Unreachable'
-            result.append({ "url": url, "status": status })
-        return jsonify(result)
+                r = requests.head(url, timeout=3)
+                statuses.append({
+                    "url": url,
+                    "status": "✅ Online" if r.status_code < 400 else "❌ Error"
+                })
+            except:
+                statuses.append({
+                    "url": url,
+                    "status": "❌ Error"
+                })
+        return jsonify(statuses)
 
     if request.method == 'POST':
         new_url = request.json.get('url')
@@ -45,15 +53,17 @@ def api_urls():
                 json.dump(urls, f)
         return jsonify({"message": "URL added"}), 201
 
-    if request.method == 'DELETE':
-        del_url = request.json.get('url')
+@app.route('/api/urls/<int:index>', methods=['DELETE'])
+def delete_url(index):
+    if os.path.exists(URLS_FILE):
         with open(URLS_FILE, 'r+') as f:
             urls = json.load(f)
-            urls = [u for u in urls if u != del_url]
-            f.seek(0)
-            f.truncate()
-            json.dump(urls, f)
-        return jsonify({"message": "URL removed"}), 200
+            if 0 <= index < len(urls):
+                urls.pop(index)
+                f.seek(0)
+                f.truncate()
+                json.dump(urls, f)
+    return jsonify({"message": "URL removed"}), 200
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
