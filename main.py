@@ -1,14 +1,9 @@
 from flask import Flask, jsonify, request, redirect, render_template
-import threading
-import time
-import requests
-import json
-import os
+import json, os, requests, threading, time
 
 app = Flask(__name__)
 URLS_FILE = "urls.json"
 
-# Redirect / to /dashboard
 @app.route('/')
 def root():
     return redirect('/dashboard')
@@ -33,7 +28,7 @@ def handle_urls():
         statuses = []
         for url in urls:
             try:
-                r = requests.get(url, timeout=3)
+                r = requests.head(url, timeout=3)
                 statuses.append({
                     "url": url,
                     "status": "✅ Online" if r.status_code < 400 else "❌ Error"
@@ -52,7 +47,6 @@ def handle_urls():
             if new_url not in urls:
                 urls.append(new_url)
                 f.seek(0)
-                f.truncate()
                 json.dump(urls, f)
         return jsonify({"message": "URL added"}), 201
 
@@ -68,20 +62,19 @@ def delete_url(index):
                 json.dump(urls, f)
     return jsonify({"message": "URL removed"}), 200
 
-
-# 🔁 Background self-pinger thread
+# 🟢 Background thread that pings itself and all saved URLs
 def keep_alive():
     while True:
         try:
-            print("🔁 Pinging self to stay awake...")
+            print("⏱️  Background ping running...")
             requests.get("https://uptimerunner.onrender.com/ping", timeout=5)
+            requests.get("https://uptimerunner.onrender.com/api/urls", timeout=10)
         except Exception as e:
-            print("❌ Ping failed:", e)
-        time.sleep(300)  # every 5 minutes
-
+            print("⚠️ Ping failed:", e)
+        time.sleep(600)  # every 10 minutes
 
 if __name__ == '__main__':
-    # Start self-ping thread
+    # Start background thread
     threading.Thread(target=keep_alive, daemon=True).start()
 
     port = int(os.environ.get("PORT", 5000))
