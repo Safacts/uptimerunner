@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Uptime Runner Dashboard</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background: #333;
+      color: #fff;
+      padding: 20px;
+      text-align: center;
+    }
+    .container {
+      padding: 20px;
+    }
+    h2 {
+      margin-top: 0;
+    }
+    form {
+      margin-bottom: 20px;
+    }
+    input[type="url"] {
+      padding: 10px;
+      width: 70%;
+      margin-right: 10px;
+    }
+    button {
+      padding: 10px 15px;
+      background: #333;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #555;
+    }
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+    li {
+      background: #fff;
+      padding: 10px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      border-left: 5px solid #2196F3;
+    }
+    .remove {
+      color: red;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Uptime Runner Dashboard</h1>
+  </header>
+  <div class="container">
+    <h2>Add URL to Monitor</h2>
+    <form id="urlForm">
+      <input type="url" id="urlInput" placeholder="Enter URL to ping" required />
+      <button type="submit">Add</button>
+    </form>
+
+    <h2>Monitored URLs</h2>
+    <ul id="urlList"></ul>
+  </div>
+    <script>
+    const form = document.getElementById('urlForm');
+    const input = document.getElementById('urlInput');
+    const list = document.getElementById('urlList');
+
+    async function fetchUrls() {
+        const res = await fetch('/api/urls');
+        return await res.json();
+    }
+
+    async function renderList() {
+        const urls = await fetchUrls();
+        list.innerHTML = '';
+        urls.forEach((url, index) => {
+        const li = document.createElement('li');
+        li.innerHTML = `
+            <span>${url}</span>
+            <span class="remove" onclick="removeUrl(${index})">Remove</span>
+        `;
+        list.appendChild(li);
+        });
+    }
+
+    async function removeUrl(index) {
+        await fetch(`/api/urls/${index}`, { method: 'DELETE' });
+        renderList();
+    }
+
+    form.onsubmit = async function (e) {
+        e.preventDefault();
+        const url = input.value.trim();
+        if (url) {
+        await fetch('/api/urls', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url })
+        });
+        input.value = '';
+        renderList();
+        }
+    };
+
+    renderList();
+    </script>
+</body>
+</html>
