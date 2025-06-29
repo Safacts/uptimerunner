@@ -78,58 +78,40 @@
       const input = document.getElementById('urlInput');
       const list = document.getElementById('urlList');
 
-      async function fetchUrls() {
-        const res = await fetch('/api/urls');
-        return await res.json();
-      }
-
       async function renderList() {
-        const urls = await fetchUrls();
-        list.innerHTML = '';
-
-        urls.forEach(async (url, index) => {
-          const li = document.createElement('li');
-
-          // Check URL status
-          let status = '';
-          try {
-            const res = await fetch(url, { method: 'HEAD', mode: 'no-cors' });
-            status = res.ok ? '✅ Online' : '❌ Error';
-          } catch (e) {
-            status = '❌ Unreachable';
-          }
-
-          li.innerHTML = `
-            <span>${url} - <strong>${status}</strong></span>
-            <span class="remove" onclick="removeUrl(${index})">Remove</span>
-          `;
-          list.appendChild(li);
-        });
+          const data = await fetch('/api/urls').then(res => res.json());
+          list.innerHTML = '';
+          data.forEach(({ url, status }) => {
+              const li = document.createElement('li');
+              li.innerHTML = `
+                  <span>${url} - <strong>${status}</strong></span>
+                  <span class="remove" onclick="removeUrl('${url}')">Remove</span>
+              `;
+              list.appendChild(li);
+          });
       }
 
-      async function removeUrl(index) {
-        const urls = await fetchUrls();
-        const urlToRemove = urls[index];
-        await fetch('/api/urls', {
-          method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ url: urlToRemove })
-        });
-        renderList();
+      async function removeUrl(url) {
+          await fetch('/api/urls', {
+              method: 'DELETE',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ url })
+          });
+          renderList();
       }
 
       form.onsubmit = async function (e) {
-        e.preventDefault();
-        const url = input.value.trim();
-        if (url) {
-          await fetch('/api/urls', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ url })
-          });
-          input.value = '';
-          renderList();
-        }
+          e.preventDefault();
+          const url = input.value.trim();
+          if (url) {
+              await fetch('/api/urls', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ url })
+              });
+              input.value = '';
+              renderList();
+          }
       };
 
       renderList();
