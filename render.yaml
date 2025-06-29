@@ -1,8 +1,8 @@
 services:
   - type: web
-    name: uptime-keeper
+    name: uptime-runner
     env: python
     plan: free
-    buildCommand: ""
+    buildCommand: "pip install -r requirements.txt"
     startCommand: "python main.py"
     healthCheckPath: /ping
