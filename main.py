@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request, redirect, send_file
+from flask import Flask, jsonify, request, redirect, send_file, render_template
 import json, os
 import requests
 
@@ -17,7 +17,7 @@ def ping():
 
 @app.route('/dashboard')
 def dashboard():
-    return send_file("dashboard.html")
+    return render_template("dashboard.html")
 
 @app.route('/api/urls', methods=['GET', 'POST'])
 def handle_urls():
