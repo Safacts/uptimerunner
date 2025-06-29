@@ -1,23 +1,9 @@
 from flask import Flask, render_template, request, jsonify
-import json, os
+import json, os, threading, time
+import requests
 
 app = Flask(__name__)
-
 URLS_FILE = "urls.json"
-
-@app.route('/')
-def home():
-    return render_template('dashboard.html')
-
-@app.route('/ping')
-def ping():
-    return "pong", 200
-
-if __name__ == '__main__':
-    import os
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=True)
-
 
 @app.route('/')
 def home():
@@ -25,7 +11,11 @@ def home():
 
 @app.route('/dashboard')
 def dashboard():
-    return open('dashboard.html').read()
+    return render_template('dashboard.html')  # dashboard.html must be in /templates
+
+@app.route('/ping')
+def ping():
+    return "pong", 200
 
 @app.route('/api/urls', methods=['GET', 'POST', 'DELETE'])
 def api_urls():
@@ -44,6 +34,7 @@ def api_urls():
             if new_url not in urls:
                 urls.append(new_url)
                 f.seek(0)
+                f.truncate()
                 json.dump(urls, f)
         return jsonify({"message": "URL added"}), 201
 
@@ -57,8 +48,22 @@ def api_urls():
             json.dump(urls, f)
         return jsonify({"message": "URL removed"}), 200
 
+# 🔁 Self-pinger function
+def keep_alive():
+    def ping_forever():
+        while True:
+            try:
+                url = "https://uptimerunner.onrender.com/ping"
+                print(f"Pinging {url}")
+                requests.get(url)
+            except Exception as e:
+                print("Ping failed:", e)
+            time.sleep(600)  # every 10 minutes
+    thread = threading.Thread(target=ping_forever)
+    thread.daemon = True
+    thread.start()
+
 if __name__ == '__main__':
-    import os
+    keep_alive()  # 🔁 Start self-pinging
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
-
