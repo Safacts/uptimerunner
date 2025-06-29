@@ -3,7 +3,7 @@ import threading, time, requests
 
 app = Flask(__name__)
 
-# Add all the project URLs you want to keep alive
+# Add all the project URLs you want to keep alive.
 URLS = [
     "https://jnwn.onrender.com/portal/dashboard/",
     "https://your-second-app.vercel.app",
